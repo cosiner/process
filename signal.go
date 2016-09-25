@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 )
 
 type SignalHandler func() (continu bool)
@@ -12,7 +13,8 @@ func SigIgnore() bool { return true }
 func SigExit() bool   { return false }
 
 type Signal struct {
-	c chan os.Signal
+	closed int32
+	c      chan os.Signal
 
 	mu             sync.RWMutex
 	defaultHandler SignalHandler
@@ -60,7 +62,9 @@ func (s *Signal) Handle(handler SignalHandler, sigs ...os.Signal) *Signal {
 }
 
 func (s *Signal) Close() {
-	close(s.c)
+	if atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
+		close(s.c)
+	}
 }
 
 func (s *Signal) handler(signal os.Signal) SignalHandler {
