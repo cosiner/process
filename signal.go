@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type SignalHandler func() (exit bool)
+type SignalHandler func() (continu bool)
 
 func SigIgnore() bool { return true }
 func SigExit() bool   { return false }
