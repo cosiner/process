@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 )
 
-type SignalHandler func() (continu bool)
+type SignalHandler func(sig os.Signal) (continu bool)
 
-func SigIgnore() bool { return true }
-func SigExit() bool   { return false }
+func SigIgnore(sig os.Signal) bool { return true }
+func SigExit(sig os.Signal) bool   { return false }
 
 type Signal struct {
 	closed int32
@@ -85,7 +85,7 @@ func (s *Signal) handler(signal os.Signal) SignalHandler {
 
 func (s *Signal) Wait() bool {
 	sig, ok := <-s.c
-	return ok && s.handler(sig)()
+	return ok && s.handler(sig)(sig)
 }
 
 func (s *Signal) Loop() {
