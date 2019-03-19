@@ -83,13 +83,20 @@ func (s *Signal) handler(signal os.Signal) SignalHandler {
 	return handler
 }
 
-func (s *Signal) Wait() bool {
+func (s *Signal) Wait() (os.Signal, bool) {
 	sig, ok := <-s.c
-	return ok && s.handler(sig)(sig)
+	if !ok {
+		return nil, false
+	}
+	return sig, s.handler(sig)(sig)
 }
 
-func (s *Signal) Loop() {
-	for s.Wait() {
+func (s *Signal) Loop() os.Signal {
+	for {
+		sig, continu := s.Wait()
+		if !continu {
+			return sig
+		}
 	}
 }
 
