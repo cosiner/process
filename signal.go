@@ -13,8 +13,9 @@ func SigIgnore(sig os.Signal) bool { return true }
 func SigExit(sig os.Signal) bool   { return false }
 
 type Signal struct {
-	closed int32
-	c      chan os.Signal
+	closed    int32
+	closeChan chan struct{}
+	c         chan os.Signal
 
 	mu             sync.RWMutex
 	defaultHandler SignalHandler
@@ -25,6 +26,7 @@ type Signal struct {
 func NewSignal() *Signal {
 	return &Signal{
 		c:              make(chan os.Signal, 1),
+		closeChan:      make(chan struct{}),
 		defaultHandler: SigExit,
 		handlers:       make(map[string]SignalHandler),
 		notified:       make(map[string]struct{}),
@@ -63,7 +65,7 @@ func (s *Signal) Handle(handler SignalHandler, sigs ...os.Signal) *Signal {
 
 func (s *Signal) Close() {
 	if atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
-		close(s.c)
+		close(s.closeChan)
 	}
 }
 
@@ -84,11 +86,15 @@ func (s *Signal) handler(signal os.Signal) SignalHandler {
 }
 
 func (s *Signal) Wait() (os.Signal, bool) {
-	sig, ok := <-s.c
-	if !ok {
+	if atomic.LoadInt32(&s.closed) == 1 {
 		return nil, false
 	}
-	return sig, s.handler(sig)(sig)
+	select {
+	case sig := <-s.c:
+		return sig, s.handler(sig)(sig)
+	case <-s.closeChan:
+		return nil, false
+	}
 }
 
 func (s *Signal) Loop() os.Signal {
