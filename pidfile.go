@@ -73,6 +73,10 @@ func (p PIDFile) Remove() error {
 }
 
 func IsProcessExist(pid int) bool {
+	_, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
 	return isProcessExist(pid)
 }
 

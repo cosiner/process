@@ -2,6 +2,7 @@ package process
 
 import (
 	"os"
+	"runtime"
 	"testing"
 )
 
@@ -26,5 +27,13 @@ func TestPidFile(t *testing.T) {
 	if !IsProcessExist(pid) {
 		t.Error("check process exist failed")
 		return
+	}
+}
+
+func TestIsProcessExist(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		if !IsProcessExist(1) {
+			t.Fatal("pid 1 should exist")
+		}
 	}
 }

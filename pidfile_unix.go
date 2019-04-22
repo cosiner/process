@@ -1,17 +1,21 @@
-// +build !windows
+// +build linux solaris
 
 package process
 
 import (
 	"os"
+	"strconv"
 	"syscall"
 )
 
 func isProcessExist(pid int) bool {
-	process, err := os.FindProcess(pid)
-	if err != nil {
+	_, err := os.Stat("/proc/" + strconv.Itoa(pid))
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
 		return false
 	}
-
-	return process.Signal(syscall.Signal(0)) == nil
+	err = syscall.Kill(pid, syscall.Signal(0))
+	return err == nil || err == syscall.EPERM
 }
